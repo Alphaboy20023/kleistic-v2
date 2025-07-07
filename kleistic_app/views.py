@@ -78,25 +78,6 @@ def firebase_view(request):
         id_token = body.get("token")
         if not id_token:
             return HttpResponseBadRequest("Missing ID token")
-
-        try:
-            decoded_token = auth.verify_id_token(id_token)
-            uid = decoded_token['uid']
-            email = decoded_token.get('email', '')
-            name = decoded_token.get('name', '')
-            picture = decoded_token.get('picture', '')
-
-            return JsonResponse({
-                "uid": uid,
-                "email": email,
-                "name": name,
-                "picture": picture,
-            })
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
-
-    return HttpResponseBadRequest("Only POST requests allowed")
     
     
 class GoogleLoginView(APIView):
@@ -104,7 +85,7 @@ class GoogleLoginView(APIView):
 
     
     def post(self, request):
-        init_firebase() 
+        # init_firebase() 
         token = request.data.get('token')
         
         try:
