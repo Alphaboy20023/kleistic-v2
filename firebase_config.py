@@ -12,8 +12,8 @@ def init_firebase():
 
         # Parse the string into a dict
         cred_dict = json.loads(firebase_creds_str)
-
-        # Now pass that dict to Certificate()
+        
+        print("Type of cred_dict:", type(cred_dict))
         cred = credentials.Certificate(cred_dict)
 
         firebase_admin.initialize_app(cred)
