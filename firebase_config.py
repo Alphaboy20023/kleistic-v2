@@ -18,3 +18,15 @@ def init_firebase():
         cred = credentials.Certificate(cred_dict)
 
         initialize_app(cred)
+        
+        
+# import json
+
+# with open("kleistic-firebase-adminsdk-fbsvc-5486d3f42c.json") as f:
+#     data = json.load(f)
+
+# # Replace real newlines in the private key with \\n
+# data["private_key"] = data["private_key"].replace("\n", "\\n")
+
+# escaped = json.dumps(data)
+# print(escaped)  # This is the final value you paste into FIREBASE_CREDS_JSON

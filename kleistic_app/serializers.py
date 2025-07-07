@@ -3,6 +3,8 @@ from django.contrib.auth import authenticate
 from .models import CustomUser
 from django.contrib import messages
 from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
