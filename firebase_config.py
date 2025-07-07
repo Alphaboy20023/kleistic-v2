@@ -1,9 +1,10 @@
 import os
 import json
 from firebase_admin import credentials, initialize_app
+import firebase_admin
 
 def init_firebase():
-    if not len(initialize_app._apps):
+     if not firebase_admin._apps:
         firebase_creds = os.getenv("FIREBASE_CREDS_JSON")
         try:
             cred_dict = json.loads(firebase_creds)  
