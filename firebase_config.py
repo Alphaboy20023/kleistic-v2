@@ -9,8 +9,10 @@ def init_firebase():
         if not firebase_creds_str:
             raise ValueError("Missing FIREBASE_CREDS_JSON environment variable")
 
-        # Convert string to dictionary
+        # THIS is what you're missing
         cred_dict = json.loads(firebase_creds_str)
-        cred = credentials.Certificate(cred_dict)  
+
+        #  PASS A DICT, NOT A STRING
+        cred = credentials.Certificate(cred_dict)
 
         firebase_admin.initialize_app(cred)
