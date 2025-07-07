@@ -121,7 +121,7 @@ if DATABASE_URL:
         )}
     
     DATABASES['default']['OPTIONS'] = {
-        'options': '-c search_path=kleistic'
+        'options': '-c search_path=kleistic_v2'
     }
 else:
     print('⚠️ DATABASE_URL not found. Falling back to SQLite...')
