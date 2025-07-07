@@ -1,7 +1,7 @@
-import firebase_admin
-from firebase_admin import credentials
-import os
 import json
+import os
+from firebase_admin import credentials, initialize_app
+import firebase_admin
 
 def init_firebase():
     if not firebase_admin._apps:
@@ -10,10 +10,8 @@ def init_firebase():
         if not firebase_creds_str:
             raise ValueError("Missing FIREBASE_CREDS_JSON environment variable")
 
-        # Parse the string into a dict
+        # No replace needed here
         cred_dict = json.loads(firebase_creds_str)
-        
-        print("Type of cred_dict:", type(cred_dict))
         cred = credentials.Certificate(cred_dict)
 
-        firebase_admin.initialize_app(cred)
+        initialize_app(cred)
