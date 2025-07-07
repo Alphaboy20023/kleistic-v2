@@ -12,6 +12,9 @@ def init_firebase():
 
         # No replace needed here
         cred_dict = json.loads(firebase_creds_str)
+        
+        cred_dict["private_key"] = cred_dict["private_key"].replace("\\n", "\n")
+
         cred = credentials.Certificate(cred_dict)
 
         initialize_app(cred)
