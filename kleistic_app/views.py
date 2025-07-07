@@ -5,13 +5,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
 import traceback
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
 from django.contrib.auth.models import User
 from firebase_admin import auth as firebase_auth
 from firebase_config import init_firebase
-from django.http import JsonResponse, HttpResponseBadRequest
-from firebase_admin import auth
+from django.http import  HttpResponseBadRequest
+
 
 
 
@@ -85,8 +83,11 @@ class GoogleLoginView(APIView):
 
     
     def post(self, request):
+        
         init_firebase() 
+        
         token = request.data.get('token')
+        print('token', token[:40])
         
         try:
             decoded_token = firebase_auth.verify_id_token(token)

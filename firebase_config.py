@@ -1,17 +1,16 @@
+import firebase_admin
+from firebase_admin import credentials
 import os
 import json
-from firebase_admin import credentials, initialize_app
-import firebase_admin
 
 def init_firebase():
-     if not firebase_admin._apps:
-        firebase_creds = os.getenv("FIREBASE_CREDS_JSON")
-        try:
-            cred_dict = json.loads(firebase_creds)  
-            cred = credentials.Certificate(cred_dict)  
-            initialize_app(cred)
-            print("✅ Firebase initialized successfully")
-        except json.JSONDecodeError as e:
-            print("🔥 JSON Decode Error in Firebase creds:", e)
-        except Exception as e:
-            print("🔥 Firebase init error:", e)
+    if not firebase_admin._apps:  
+        firebase_creds_str = os.environ.get("FIREBASE_CREDS_JSON")
+
+        if not firebase_creds_str:
+            raise ValueError("Missing FIREBASE_CREDS_JSON in environment")
+
+       
+        cred_dict = json.loads(firebase_creds_str)
+        cred = credentials.Certificate(cred_dict)
+        firebase_admin.initialize_app(cred)
