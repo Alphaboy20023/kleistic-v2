@@ -75,7 +75,7 @@ def firebase_view(request):
         import json
         body = json.loads(request.body)
 
-        id_token = body.get("idToken")
+        id_token = body.get("token")
         if not id_token:
             return HttpResponseBadRequest("Missing ID token")
 
@@ -104,6 +104,7 @@ class GoogleLoginView(APIView):
 
     
     def post(self, request):
+        init_firebase() 
         token = request.data.get('token')
         
         try:
