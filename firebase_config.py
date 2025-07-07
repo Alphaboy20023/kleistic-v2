@@ -1,30 +1,16 @@
-# firebase_config.py
 import os
 import json
-import firebase_admin
-from firebase_admin import credentials
+from firebase_admin import credentials, initialize_app
 
 def init_firebase():
-    if not firebase_admin._apps:
-        firebase_creds = os.getenv('FIREBASE_CREDS_JSON')
-
-        if not firebase_creds:
-            raise Exception("FIREBASE_CREDS_JSON is not set")
-
+    if not len(initialize_app._apps):
+        firebase_creds = os.getenv("FIREBASE_CREDS_JSON")
         try:
-            
-            if isinstance(firebase_creds, str):
-                cred_dict = json.loads(firebase_creds)  # Turn JSON string into dict
-            else:
-                cred_dict = firebase_creds  
-
-            cred = credentials.Certificate(cred_dict)
-            firebase_admin.initialize_app(cred)
-
+            cred_dict = json.loads(firebase_creds)  
+            cred = credentials.Certificate(cred_dict)  
+            initialize_app(cred)
+            print("✅ Firebase initialized successfully")
         except json.JSONDecodeError as e:
-            print("🔥 JSON Decode Error in Firebase creds:", str(e))
-            raise
-
+            print("🔥 JSON Decode Error in Firebase creds:", e)
         except Exception as e:
-            print("🔥 Firebase init error:", str(e))
-            raise
+            print("🔥 Firebase init error:", e)
