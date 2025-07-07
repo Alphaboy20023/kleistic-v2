@@ -9,3 +9,4 @@ __pycache__/
 *.pyc
 db.sqlite3
 .env
+kleistic-firebase-adminsdk-fbsvc-5486d3f42c.json
