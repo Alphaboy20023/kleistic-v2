@@ -85,7 +85,7 @@ class GoogleLoginView(APIView):
 
     
     def post(self, request):
-        # init_firebase() 
+        init_firebase() 
         token = request.data.get('token')
         
         try:
