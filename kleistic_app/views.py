@@ -8,9 +8,10 @@ import traceback
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from django.contrib.auth.models import User
-import firebase_admin
-from firebase_admin import auth as firebase_auth, credentials
+from firebase_admin import auth as firebase_auth
 from firebase_config import init_firebase
+from django.http import JsonResponse, HttpResponseBadRequest
+from firebase_admin import auth
 
 
 
@@ -67,9 +68,35 @@ class LoginView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
-def firebase_view():
+def firebase_view(request):
     init_firebase()
+    
+    if request.method == "POST":
+        import json
+        body = json.loads(request.body)
 
+        id_token = body.get("idToken")
+        if not id_token:
+            return HttpResponseBadRequest("Missing ID token")
+
+        try:
+            decoded_token = auth.verify_id_token(id_token)
+            uid = decoded_token['uid']
+            email = decoded_token.get('email', '')
+            name = decoded_token.get('name', '')
+            picture = decoded_token.get('picture', '')
+
+            return JsonResponse({
+                "uid": uid,
+                "email": email,
+                "name": name,
+                "picture": picture,
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    return HttpResponseBadRequest("Only POST requests allowed")
     
     
 class GoogleLoginView(APIView):
