@@ -1,0 +1,11 @@
+# Ignore Firebase credentials
+serviceAccountKey.json
+
+# Python virtual environment
+venv/
+
+# Django specific
+__pycache__/
+*.pyc
+db.sqlite3
+.env
