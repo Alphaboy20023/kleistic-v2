@@ -53,3 +53,123 @@ class CustomUser(AbstractUser):
 class TimeStampField(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        abstract = True
+    
+class Product(TimeStampField):
+    title = models.CharField(max_length=200)
+    price = models.PositiveIntegerField()
+    old_price = models.PositiveIntegerField()
+    image = models.ImageField(upload_to="product_images/")
+    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
+    reviews = models.PositiveIntegerField(default=0)
+    category = models.CharField(
+        max_length=50,
+        choices=(
+            ("THIS_MONTH", "This Month"),
+            ("OUR_PRODUCTS", "Our Products"),
+            ("FLASH_SALES", "Flash Sales"),
+        ),
+        default="OUR_PRODUCTS",
+    )
+    main_category = models.CharField(max_length=200, choices=(
+        ("WOMEN'S_FASHION","Women's Fashion" ),
+        ("MEN'S_FASHION", "Men's Fashion"),
+        ("ELECTRONICS", "Electronics"),
+        ("GAMING", "Gaming"),
+        ("BABY'S_AND_TOYS", "Baby's and Toys"), 
+        ("GROCERIES_AND_PETS", "Groceries and pets"),
+        ("HEALTH_AND_BEAUTY", "Health and beauty"),
+        ("LIFESTYLE", "Lifestyle"), 
+        ("SPORTS", "Sports")
+    ))
+
+    def __str__(self):
+        return f'{self.title}'
+
+
+# All orders
+class Order(TimeStampField):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, default=0)
+    customer = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  
+    shipping_address = models.TextField()
+    payment_method = models.CharField(
+        max_length=50,
+        choices=(
+            ("BANK", "Bank"),
+            ("CASH_ON_DELIVERY", "Cash on Delivery"),
+        ),
+    )
+    grand_total = models.PositiveIntegerField(default=0)
+    shipping_fee = models.PositiveIntegerField(default=20)
+    status = models.CharField(
+    max_length=20,
+    choices=[
+        ("PENDING", "Pending"),
+        ("PAID", "Paid"),
+        ("PROCESSING", "Processing"),
+        ("FULFILLED", "Fulfilled"),
+        ("CANCELLED", "Cancelled"),
+        ("DELIVERED", "Delivered"),
+        ("REFUNDED", "Refunded")
+    ],
+    default="PENDING")
+    
+    def set_shipping_fee(self, items_total):
+        """Business rule for shipping fee."""
+        if items_total > 100:
+            return 10  # discount
+        return 20
+    
+    def calculate_grand_total(self):
+        items_total = sum(item.item_total for item in self.items.all())
+        self.shipping_fee = self.set_shipping_fee(items_total)
+        self.grand_total = items_total + self.shipping_fee
+        return self.grand_total
+    
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            super().save(*args, **kwargs)
+        self.calculate_grand_total()
+        super().save(update_fields=["grand_total", "shipping_fee"])
+        
+    def __str__(self):
+        return f"Order #{self.id} - {self.customer_name}"
+
+    
+# order for a single item
+class ItemOrder(TimeStampField):
+    order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.PositiveIntegerField()  # snapshot of product.price at time of order
+    item_total = models.PositiveIntegerField(default=0)
+    
+        
+    def calculate_total(self):
+        if not self.unit_price:
+            self.unit_price = self.product.price
+            
+        item_total = self.unit_price * self.quantity
+        self.item_total = item_total
+        return self.item_total
+    
+    def save(self, *args, **kwargs):
+        self.calculate_total()  # recalc before saving
+        super().save(*args, **kwargs)
+        # after saving this item, trigger parent order to recalc
+        self.order.save()
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.title}"    
+    
+class Payment(TimeStampField):
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="payment")
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    reference = models.CharField(max_length=100, unique=True)
+    status = models.CharField(max_length=20, default="PENDING", choices=(("PAID", "paid"), ("FAILED", "Failed"), ("PENDING", "Pending")))
+    
+    def __str__(self):
+        return f"{self.user} - {self.order.id} - {self.status}"

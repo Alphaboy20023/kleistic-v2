@@ -112,32 +112,32 @@ WSGI_APPLICATION = 'kleistic_v2.wsgi.application'
 
 AUTH_USER_MODEL = 'kleistic_app.CustomUser' 
 
-DATABASE_URL= os.getenv("DATABASE_URL")
+# DATABASE_URL= os.getenv("DATABASE_URL")
 
-if DATABASE_URL:
-    DATABASES= {
-        'default':dj_database_url.parse(DATABASE_URL, conn_max_age=600,
-        conn_health_checks=True
-        )}
+# if DATABASE_URL:
+#     DATABASES= {
+#         'default':dj_database_url.parse(DATABASE_URL, conn_max_age=600,
+#         conn_health_checks=True
+#         )}
     
-    DATABASES['default']['OPTIONS'] = {
-        'options': '-c search_path=kleistic_v2'
-    }
-else:
-    print('⚠️ DATABASE_URL not found. Falling back to SQLite...')
-    DATABASES= {
-        'default':{
-            'ENGINE':'django.db.backends.sqlite3',
-            'NAME':BASE_DIR/'db.sqlite3'
-        }
-    }
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
+#     DATABASES['default']['OPTIONS'] = {
+#         'options': '-c search_path=kleistic_v2'
 #     }
-# }
+# else:
+#     print('⚠️ DATABASE_URL not found. Falling back to SQLite...')
+#     DATABASES= {
+#         'default':{
+#             'ENGINE':'django.db.backends.sqlite3',
+#             'NAME':BASE_DIR/'db.sqlite3'
+#         }
+#     }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
 
 
 # Password validation
@@ -175,6 +175,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# STATIC_URL = 'static/'
+# STATICFILES_DIRS = [(os.path.join(BASE_DIR, 'Template/static'))]
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'product_images' )
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
