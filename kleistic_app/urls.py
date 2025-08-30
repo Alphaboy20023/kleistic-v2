@@ -18,10 +18,15 @@ urlpatterns = [
     path('products/', ProductView.as_view(), name='products'),
     path('products/<int:pk>/', ProductView.as_view(), name='product-detail'),
     # orders
-    path('orders/<int:pk>/', OrderView.as_view(), name='order-list'),
+    path('orders/', OrderView.as_view(), name='order-list'),
     path('orders/<int:pk>/', OrderView.as_view(), name='order-detail'),
     # item orders
-    path('item-orders/<int:pk>/', ItemOrderView.as_view(), name='itemorder-list'),
-    path('item-orders/<int:pk>/', ItemOrderView.as_view(), name='itemorder-detail')
-] + static(settings.MEDIA_URL,
+    path('item-orders/', ItemOrderView.as_view(), name='itemorder-list'),
+    path('item-orders/<int:pk>/', ItemOrderView.as_view(), name='itemorder-detail'),
+    # payment
+    path('initialize-payments/', InitializePaymentView.as_view(), name='initialize-payment'),
+    path('verify-payments/', VerifyPaymentView.as_view(), name='verify-payment'),
+    # receipts
+    path('generate-receipts/', GenerateReceiptView.as_view(), name = 'receipt')
+    ] + static(settings.MEDIA_URL,
            document_root = settings.MEDIA_ROOT)

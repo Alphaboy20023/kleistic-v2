@@ -1,4 +1,5 @@
-from rest_framework import generics, status
+from datetime import timezone
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -11,8 +12,8 @@ from django.http import  HttpResponseBadRequest
 from django.contrib.auth import get_user_model
 User = get_user_model()
 from .models import *
-from rest_framework.generics import RetrieveUpdateDestroyAPIView
-
+import requests
+from django.conf import settings
 
 
 
@@ -133,6 +134,14 @@ class ProductView(APIView):
         serializer = self.serializer_class(product)
         return Response(serializer.data)
     
+    def post(self, request):
+        # create a new product
+        serializer = self.serializer_class(data=request.data, context={"request":request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 class OrderView(APIView):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
@@ -250,3 +259,83 @@ class ItemOrderView(APIView):
         serializer = ItemOrderSerializer(active_items, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+PAYSTACK_SECRET_KEY = settings.PAYSTACK_SECRET_KEY
+class InitializePaymentView(APIView):
+    serializer_class  = PaymentSerializer
+    def post(self, request, order_id):
+        try:
+            order = Order.objects.get(id=order_id, customer=request.user, status="PENDING")
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
+        data = {
+            "email": request.user.email,
+            "amount": int(order.total * 100),  # Paystack uses kobo
+            "reference": f"ORD_{order.id}_{timezone.now().timestamp()}",
+        }
+
+        response = requests.post("https://api.paystack.co/transaction/initialize", headers=headers, data=data)
+        res_data = response.json()
+
+        if res_data.get("status") is True:
+            # Save reference
+            Payment.objects.create(
+                order=order,
+                user=request.user,
+                amount=order.total,
+                reference=data["reference"]
+            )
+            return Response(res_data["data"], status=status.HTTP_200_OK)
+
+        return Response(res_data, status=status.HTTP_400_BAD_REQUEST)
+    
+class VerifyPaymentView(APIView):
+    def get(self, request, reference):
+        headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
+        response = requests.get(f"https://api.paystack.co/transaction/verify/{reference}", headers=headers)
+        res_data = response.json()
+        
+        try:
+            payment = Payment.objects.get(reference=reference, user=request.user)
+        except Payment.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        if res_data["status"] and res_data["data"]["status"] == "success":
+            payment.status = "SUCCESS"
+            payment.save()
+
+            order = payment.order
+            order.status = "PAID"
+            order.save()
+            
+        payment.status = "FAILED"
+        payment.save()
+        return Response({"message": "Payment failed"}, status=status.HTTP_400_BAD_REQUEST)
+    
+class GenerateReceiptView(APIView):
+    serializer_class = ReceiptSerializer
+    
+    def get(self, request, reference):
+        try:
+            payment = Payment.objects.get(reference=reference, user=request.user)
+        except Payment.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            receipt = Receipt.objects.get(payment_reference=payment, user=request.user)
+        except Receipt.DoesNotExist:
+            return Response({"error":"Receipt not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # validate payment
+        if payment.status == "SUCCESS": 
+            if receipt.status != "PAID":
+                receipt.status = "PAID"
+                receipt.save()
+                
+                serializer = self.serializer_class(receipt)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response( {"message": f"Receipt cannot be issued. Current payment status: {payment.status}"},status=status.HTTP_400_BAD_REQUEST)
+            

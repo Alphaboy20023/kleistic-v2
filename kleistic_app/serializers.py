@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from .models import *
-from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 User = get_user_model()
+
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -57,26 +58,80 @@ class ProductSerializer(serializers.ModelSerializer):
     category = serializers.SerializerMethodField()
     class Meta:
         model = Product
-        fields = ['title', 'price', 'oldPrice', 'image', 'rating', 'reviews', 'category', 'mainCategory']
+        # removed image cos of testing, add back later
+        fields = ['id','title', 'price', 'oldPrice', 'rating', 'image','reviews', 'category', 'mainCategory']
         
     def get_category(self, obj):
         return obj.get_category_display()
 
 class ItemOrderSerializer(serializers.ModelSerializer):
-    unit_price = serializers.IntegerField(read_only=True)  
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    quantity = serializers.IntegerField(default=1)
+    unit_price = serializers.IntegerField(read_only=True)
     item_total = serializers.IntegerField(read_only=True)
-    product = serializers.CharField(source="product.title")
-    class Model:
+
+    class Meta:
         model = ItemOrder
-        fields = ["order", "product", "quanity", "unit_price", "item_total", "created_at"]
+        fields = ["product", "quantity", "unit_price", "item_total"]
+
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = ItemOrderSerializer(many=True, read_only=True)
+    items = ItemOrderSerializer(many=True)
     customer = serializers.CharField(source="customer.username", read_only=True)
-    grand_total = serializers.IntegerField(read_only=True)
+    total = serializers.IntegerField(read_only=True)
     shipping_fee = serializers.IntegerField(read_only=True)
     status = serializers.CharField(read_only=True)
+
     class Meta:
         model = Order
-        fields = ['id', "items", 'customer', 'shipping_address', "payment_method","shipping_fee", "grand_total", "status","created_at", "updated_at"]
+        fields = [
+            "id", "items", "customer", "shipping_address", "payment_method",
+            "shipping_fee", "total", "status", "created_at"
+        ]
+
+    def create(self, validated_data):
+        items_data = validated_data.pop("items", [])
+        user = self.context["request"].user
+
+        # Create the order instance
+        order = Order.objects.create(customer=user, **validated_data)
+
+        # Create associated ItemOrders
+        for item in items_data:
+            product = item["product"]  # This is already a Product instance thanks to PKRelatedField
+            quantity = item.get("quantity", 1)
+            unit_price = product.price
+            item_total = unit_price * quantity
+
+            ItemOrder.objects.create(
+                order=order,
+                product=product,
+                quantity=quantity,
+                unit_price=unit_price,
+                item_total=item_total
+            )
+
+        # Recalculate total and shipping fee
+        order.calculate_total()
+        order.save()
+
+        # Return the order instance
+        return order    
         
+class PaymentSerializer(serializers.ModelSerializer):
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    order = OrderSerializer(many=True, read_only=True)
+    status = serializers.CharField(read_only=True)
+    
+    
+    class Meta:
+        model = Payment
+        fields = ['user', 'order', 'amount', 'reference', 'status', 'created_at', 'updated_at']
+        
+class ReceiptSerializer(serializers.ModelSerializer):
+    payment_reference = serializers.CharField(source = 'payment.reference', read_only = True)
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only = True)
+    
+    class Meta:
+        model = Receipt
+        fields = ["user", "order", "payment_reference", "amount", "currency", "status", "issued_at"]

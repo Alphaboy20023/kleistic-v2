@@ -91,17 +91,16 @@ class Product(TimeStampField):
 
 # All orders
 class Order(TimeStampField):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, default=0)
     customer = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  
     shipping_address = models.TextField()
     payment_method = models.CharField(
         max_length=50,
         choices=(
             ("BANK", "Bank"),
-            ("CASH_ON_DELIVERY", "Cash on Delivery"),
+            ("CASH ON DELIVERY", "Cash on Delivery"),
         ),
     )
-    grand_total = models.PositiveIntegerField(default=0)
+    total = models.PositiveIntegerField(default=0)
     shipping_fee = models.PositiveIntegerField(default=20)
     status = models.CharField(
     max_length=20,
@@ -118,24 +117,24 @@ class Order(TimeStampField):
     
     def set_shipping_fee(self, items_total):
         """Business rule for shipping fee."""
-        if items_total > 100:
-            return 10  # discount
-        return 20
+        if items_total > 10000:
+            return 500  # discount
+        return 200
     
-    def calculate_grand_total(self):
+    def calculate_total(self):
         items_total = sum(item.item_total for item in self.items.all())
         self.shipping_fee = self.set_shipping_fee(items_total)
-        self.grand_total = items_total + self.shipping_fee
-        return self.grand_total
+        self.total = items_total + self.shipping_fee
+        return self.total
     
     def save(self, *args, **kwargs):
         if not self.pk:
             super().save(*args, **kwargs)
-        self.calculate_grand_total()
-        super().save(update_fields=["grand_total", "shipping_fee"])
+        self.calculate_total()
+        super().save(update_fields=["total", "shipping_fee"])
         
     def __str__(self):
-        return f"Order #{self.id} - {self.customer_name}"
+        return f"Order #{self.id} - {self.customer}"
 
     
 # order for a single item
@@ -147,7 +146,7 @@ class ItemOrder(TimeStampField):
     item_total = models.PositiveIntegerField(default=0)
     
         
-    def calculate_total(self):
+    def calculate_item_total(self):
         if not self.unit_price:
             self.unit_price = self.product.price
             
@@ -156,7 +155,7 @@ class ItemOrder(TimeStampField):
         return self.item_total
     
     def save(self, *args, **kwargs):
-        self.calculate_total()  # recalc before saving
+        self.calculate_item_total()  # recalc before saving
         super().save(*args, **kwargs)
         # after saving this item, trigger parent order to recalc
         self.order.save()
@@ -169,7 +168,24 @@ class Payment(TimeStampField):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     reference = models.CharField(max_length=100, unique=True)
-    status = models.CharField(max_length=20, default="PENDING", choices=(("PAID", "paid"), ("FAILED", "Failed"), ("PENDING", "Pending")))
+    status = models.CharField(max_length=20, default="PENDING", choices=(("SUCCESS", "Success"), ("FAILED", "Failed"), ("PENDING", "Pending")))
     
     def __str__(self):
         return f"{self.user} - {self.order.id} - {self.status}"
+    
+class Receipt(TimeStampField):
+    user = models.ForeignKey("CustomUser", on_delete=models.CASCADE, related_name="receipts")
+    order = models.OneToOneField("Order", on_delete=models.CASCADE, related_name="receipt")
+    payment = models.OneToOneField("Payment", on_delete=models.CASCADE, related_name="receipt")  # Paystack ref
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=10, default="NGN")
+    status = models.CharField(max_length=20, default="pending", choices=(
+        ("PENDING", "Pending"),
+        ("PAID", "Paid"),
+        ("FAILED", "Failed"),
+        ("REFUNDED", "Refunded"),
+    ))  
+    issued_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Receipt #{self.id} - {self.user.email} - {self.amount}{self.currency}"
