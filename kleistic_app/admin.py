@@ -3,7 +3,7 @@ from .models import Product, Order, ItemOrder, Payment, Receipt
 
 # Register your models here.
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id','title', 'old_price', 'price', 'image')
+    list_display = ('id','title', 'old_price', 'price', 'category')
 
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'customer', 'payment_method', 'shipping_fee', 'total', 'shipping_address')

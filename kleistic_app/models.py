@@ -60,10 +60,16 @@ class TimeStampField(models.Model):
 class Product(TimeStampField):
     title = models.CharField(max_length=200)
     price = models.PositiveIntegerField()
-    old_price = models.PositiveIntegerField()
-    image = models.ImageField(upload_to="product_images/")
+    old_price = models.PositiveIntegerField(blank=True, null=True)
+    image = models.ImageField(upload_to="")
+    discount = models.IntegerField(default=0, blank=True, null=True)
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     reviews = models.PositiveIntegerField(default=0)
+    description = models.CharField(max_length=200, blank=True, null=True)
+    # condition=models.CharField(max_length=50, choices=(
+    #     ("IN_STOCK", "In Stock"),
+    #     ("OUT_OF_STOCK", "Out Of Stock")
+    # ))
     category = models.CharField(
         max_length=50,
         choices=(

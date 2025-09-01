@@ -16,7 +16,7 @@ urlpatterns = [
     path('google-login/', GoogleLoginView.as_view(), name='google-login'),
     # products
     path('products/', ProductView.as_view(), name='products'),
-    path('products/<int:pk>/', ProductView.as_view(), name='product-detail'),
+    path('products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     # orders
     path('orders/', OrderView.as_view(), name='order-list'),
     path('orders/<int:pk>/', OrderView.as_view(), name='order-detail'),
@@ -28,5 +28,6 @@ urlpatterns = [
     path('verify-payments/', VerifyPaymentView.as_view(), name='verify-payment'),
     # receipts
     path('generate-receipts/', GenerateReceiptView.as_view(), name = 'receipt')
-    ] + static(settings.MEDIA_URL,
-           document_root = settings.MEDIA_ROOT)
+    ] 
+    
+    

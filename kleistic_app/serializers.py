@@ -56,16 +56,29 @@ class ProductSerializer(serializers.ModelSerializer):
     oldPrice = serializers.IntegerField(source="old_price")
     mainCategory = serializers.CharField(source="main_category")
     category = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
         # removed image cos of testing, add back later
-        fields = ['id','title', 'price', 'oldPrice', 'rating', 'image','reviews', 'category', 'mainCategory']
+        fields = ['id','title', 'price', 'oldPrice', 'discount','rating', 'image','reviews', 'category', 'mainCategory']
         
     def get_category(self, obj):
         return obj.get_category_display()
+    
+    def get_image(self, obj):
+        request = self.context.get("request")
+        # print("request:", request)
+        # print("obj.image:", obj.image)
+        if obj.image and request:
+            return request.build_absolute_uri(obj.image.url)
+        elif obj.image:
+            return obj.image.url
+        return None
+
 
 class ItemOrderSerializer(serializers.ModelSerializer):
-    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    product = ProductSerializer(read_only=True)
     quantity = serializers.IntegerField(default=1)
     unit_price = serializers.IntegerField(read_only=True)
     item_total = serializers.IntegerField(read_only=True)
@@ -73,6 +86,9 @@ class ItemOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = ItemOrder
         fields = ["product", "quantity", "unit_price", "item_total"]
+        extra_kwargs = {
+            "product": {"write_only": True},  # allow product ID input
+        }
 
 
 class OrderSerializer(serializers.ModelSerializer):

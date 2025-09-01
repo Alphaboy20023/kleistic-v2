@@ -118,29 +118,38 @@ class GoogleLoginView(APIView):
             return Response({'error':str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
 class ProductView(APIView):
-    serializer_class = ProductSerializer
     permission_classes = [AllowAny]
-    
+    serializer_class = ProductSerializer
+
+    def get(self, request):
+        products = Product.objects.all()
+        serializer = self.serializer_class(products, many=True, context={"request": request})
+        return Response(serializer.data)
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data, context={"request": request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProductDetailView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = ProductSerializer
+
     def get_object(self, pk):
         try:
             return Product.objects.get(pk=pk)
         except Product.DoesNotExist:
             return None
-    
-    def get(self, request, pk, *args, **kwargs):
+
+    def get(self, request, pk):
         product = self.get_object(pk)
         if not product:
-            return Response({"error":"Product not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(product)
+            return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.serializer_class(product, many=True, context={'request': request})
         return Response(serializer.data)
-    
-    def post(self, request):
-        # create a new product
-        serializer = self.serializer_class(data=request.data, context={"request":request})
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class OrderView(APIView):
     serializer_class = OrderSerializer
@@ -150,15 +159,15 @@ class OrderView(APIView):
         if pk:
             # get order by id
             try:
-                order = Order.objects.get(id=pk, user=request.user)
-                serializer = self.serializer_class(order)
+                order = Order.objects.get(id=pk, customer=request.user)
+                serializer = self.serializer_class(order, context={'request': request}, many=True)
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Order.DoesNotExist:
                 return Response({"error":"Order not found"}, status=status.HTTP_404_NOT_FOUND)
         else:
             # just get all orders
-            orders = Order.objects.filter(user=request.user)
-            serializer = self.serializer_class(orders, many=True)
+            orders = Order.objects.filter(customer=request.user)
+            serializer = self.serializer_class(orders, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
             
     def post(self, request):
@@ -172,7 +181,7 @@ class OrderView(APIView):
     def patch(self, request, pk):
         """Update order status (e.g. cancel order)"""
         try:
-            order = Order.objects.get(id=pk, user=request.user)
+            order = Order.objects.get(id=pk, customer=request.user)
         except Order.DoesNotExist:
             return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -189,14 +198,14 @@ class OrderView(APIView):
     
     def delete(self, request, pk):
         try:
-            order = Order.objects.get(pk=pk, user=request.user)
+            order = Order.objects.get(pk=pk, customer=request.user)
         except Order.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         order.status = "CANCELLED"
         order.save(update_fields=["status"])
         
-        active_orders = Order.objects.filter(user=request.user).exclude(status="CANCELLED")
+        active_orders = Order.objects.filter(customer=request.user).exclude(status="CANCELLED")
         serializer = OrderSerializer(active_orders, many=True)
         
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -264,6 +273,7 @@ class ItemOrderView(APIView):
 PAYSTACK_SECRET_KEY = settings.PAYSTACK_SECRET_KEY
 class InitializePaymentView(APIView):
     serializer_class  = PaymentSerializer
+    
     def post(self, request, order_id):
         try:
             order = Order.objects.get(id=order_id, customer=request.user, status="PENDING")
@@ -271,13 +281,17 @@ class InitializePaymentView(APIView):
             return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
         headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
+        
+        amount_naira = order.total
+        amount_kobo = int(amount_naira) * 100
+        
         data = {
             "email": request.user.email,
-            "amount": int(order.total * 100),  # Paystack uses kobo
+            "amount": amount_kobo,  
             "reference": f"ORD_{order.id}_{timezone.now().timestamp()}",
         }
 
-        response = requests.post("https://api.paystack.co/transaction/initialize", headers=headers, data=data)
+        response = requests.post("https://api.paystack.co/transaction/initialize", headers=headers, json=data)
         res_data = response.json()
 
         if res_data.get("status") is True:
@@ -285,7 +299,7 @@ class InitializePaymentView(APIView):
             Payment.objects.create(
                 order=order,
                 user=request.user,
-                amount=order.total,
+                amount=amount_naira,
                 reference=data["reference"]
             )
             return Response(res_data["data"], status=status.HTTP_200_OK)
