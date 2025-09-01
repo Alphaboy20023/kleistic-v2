@@ -54,7 +54,7 @@ class LoginSerializer(serializers.Serializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     oldPrice = serializers.IntegerField(source="old_price")
-    mainCategory = serializers.CharField(source="main_category")
+    mainCategory = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
 
@@ -65,6 +65,9 @@ class ProductSerializer(serializers.ModelSerializer):
         
     def get_category(self, obj):
         return obj.get_category_display()
+    
+    def get_mainCategory(self, obj):
+        return obj.get_main_category_display()
     
     def get_image(self, obj):
         request = self.context.get("request")
