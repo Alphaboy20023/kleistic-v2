@@ -98,14 +98,14 @@ class OrderSerializer(serializers.ModelSerializer):
     items = ItemOrderSerializer(many=True)
     customer = serializers.CharField(source="customer.username", read_only=True)
     total = serializers.IntegerField(read_only=True)
-    shipping_fee = serializers.IntegerField(read_only=True)
+    shippingFee = serializers.IntegerField(read_only=True, source="order.shipping_fee")
     status = serializers.CharField(read_only=True)
 
     class Meta:
         model = Order
         fields = [
             "id", "items", "customer", "shipping_address", "payment_method",
-            "shipping_fee", "total", "status", "created_at"
+            "shippingFee", "total", "status", "created_at"
         ]
 
     def create(self, validated_data):
