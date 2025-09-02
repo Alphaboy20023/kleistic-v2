@@ -98,7 +98,7 @@ class OrderSerializer(serializers.ModelSerializer):
     items = ItemOrderSerializer(many=True)
     customer = serializers.CharField(source="customer.username", read_only=True)
     total = serializers.IntegerField(read_only=True)
-    shippingFee = serializers.IntegerField(read_only=True, source="order.shipping_fee")
+    shippingFee = serializers.IntegerField(read_only=True, source="shipping_fee")
     status = serializers.CharField(read_only=True)
 
     class Meta:
@@ -107,6 +107,12 @@ class OrderSerializer(serializers.ModelSerializer):
             "id", "items", "customer", "shipping_address", "payment_method",
             "shippingFee", "total", "status", "created_at"
         ]
+        
+    def get_shippingFee(self, obj):
+        """Compute shipping fee based on total dynamically."""
+        if obj.total > 10000:
+            return 500
+        return 200   
 
     def create(self, validated_data):
         items_data = validated_data.pop("items", [])
