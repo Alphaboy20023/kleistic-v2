@@ -33,17 +33,19 @@ PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', 'paystack-fddvdbnbd8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'klestic.netlify.app']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'klestic.netlify.app', 'kleistic-v2.onrender.com']
 
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://klestic.netlify.app"
+    "https://kleistic-v2.onrender.com/"
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "https://klestic.netlify.app"
+    "https://kleistic-v2.onrender.com/"
 ]
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'content-type',
