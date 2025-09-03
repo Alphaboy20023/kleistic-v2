@@ -203,14 +203,15 @@ class OrderView(APIView):
         try:
             order = Order.objects.get(pk=pk, customer=request.user)
         except Order.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        order.status = "CANCELLED"
+        if order.status != "PENDING":
+            return Response({"error": "Only pending orders can be cancelled"}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.status = "CANCELLED"  # Database value
         order.save(update_fields=["status"])
-        
-        active_orders = Order.objects.filter(customer=request.user).exclude(status="CANCELLED")
-        serializer = OrderSerializer(active_orders, many=True)
-        
+
+        serializer = self.serializer_class(order, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class ItemOrderView(APIView):

@@ -110,6 +110,9 @@ class OrderSerializer(serializers.ModelSerializer):
         
     def get_paymentMethod(self, obj):
         return obj.get_payment_method_display()
+    
+    def get_status(self, obj):
+        return obj.get_status_display()
         
     def get_shippingFee(self, obj):
         """Compute shipping fee based on total dynamically."""
