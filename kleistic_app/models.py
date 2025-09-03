@@ -103,7 +103,7 @@ class Order(TimeStampField):
         max_length=50,
         choices=(
             ("BANK", "Bank"),
-            ("CASH ON DELIVERY", "Cash on Delivery"),
+            ("CASH_ON_DELIVERY", "Cash on Delivery"),
         ),
     )
     total = models.PositiveIntegerField(default=0)

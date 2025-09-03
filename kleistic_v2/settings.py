@@ -16,7 +16,8 @@ from datetime import timedelta
 from corsheaders.defaults import default_headers
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv(override=True)
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,13 +40,13 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'klestic.netlify.app', 'kleistic-v2.o
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "https://klestic.netlify.app/"
-    "https://kleistic-v2.onrender.com/"
+    "https://klestic.netlify.app",
+    "https://kleistic-v2.onrender.com"
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
-    "https://klestic.netlify.app/"
-    "https://kleistic-v2.onrender.com/"
+    "https://klestic.netlify.app",
+    "https://kleistic-v2.onrender.com"
 ]
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'content-type',
@@ -86,7 +87,8 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
-    )
+    ),
+    'EXCEPTION_HANDLER': 'kleistic_app.core.custom_exception_handler'
 }
 
 ROOT_URLCONF = 'kleistic_v2.urls'
@@ -191,7 +193,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=360),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_TYPES': ('Bearer'),
 }
+
+# print("✅ Loaded DATABASE_URL:", DATABASE_URL)
+# print("✅ Final DB settings:", DATABASES)

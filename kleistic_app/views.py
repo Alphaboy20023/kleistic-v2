@@ -17,6 +17,7 @@ from django.conf import settings
 
 
 
+
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
@@ -160,7 +161,7 @@ class OrderView(APIView):
             # get order by id
             try:
                 order = Order.objects.get(id=pk, customer=request.user)
-                serializer = self.serializer_class(order, context={'request': request}, many=True)
+                serializer = self.serializer_class(order, context={'request': request})
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Order.DoesNotExist:
                 return Response({"error":"Order not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -171,8 +172,10 @@ class OrderView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
             
     def post(self, request):
+      
         # create a new order
         serializer = self.serializer_class(data=request.data, context={"request":request})
+        
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)

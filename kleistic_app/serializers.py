@@ -81,32 +81,35 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class ItemOrderSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
+    productDetails = ProductSerializer(source="product", read_only=True)
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all(), write_only=True)
     quantity = serializers.IntegerField(default=1)
     unit_price = serializers.IntegerField(read_only=True)
     item_total = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = ItemOrder
-        fields = ["product", "quantity", "unit_price", "item_total"]
-        extra_kwargs = {
-            "product": {"write_only": True},  # allow product ID input
-        }
+        fields = ["product", "productDetails" ,"quantity", "unit_price", "item_total"]
+    
 
 
 class OrderSerializer(serializers.ModelSerializer):
     items = ItemOrderSerializer(many=True)
     customer = serializers.CharField(source="customer.username", read_only=True)
     total = serializers.IntegerField(read_only=True)
-    shippingFee = serializers.IntegerField(read_only=True, source="shipping_fee")
+    shippingFee = serializers.SerializerMethodField()
     status = serializers.CharField(read_only=True)
+    paymentMethod = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
-            "id", "items", "customer", "shipping_address", "payment_method",
+            "id", "items", "customer", "shipping_address", "paymentMethod",
             "shippingFee", "total", "status", "created_at"
         ]
+        
+    def get_paymentMethod(self, obj):
+        return obj.get_payment_method_display()
         
     def get_shippingFee(self, obj):
         """Compute shipping fee based on total dynamically."""
